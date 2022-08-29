@@ -18,11 +18,11 @@ class FixablyApiService
     /**
      * @var Client
      */
-    private Client $client;
+    protected Client $client;
 
-    public function __construct()
+    public function __construct(Client $client)
     {
-        $this->client = new Client();
+        $this->client = $client;
     }
 
     /**
@@ -51,5 +51,15 @@ class FixablyApiService
         $token = $response->json()['token'] ?? 'EMPTY_TOKEN';
 
         return new TokenResponseDto($statusCode, $token);
+    }
+
+    public function getOrdersByStatus(int $page = 1)
+    {
+
+    }
+
+    public function getAssignedOrdersByDevice(string $deviceBrand = 'iPhone', int $page = 1)
+    {
+
     }
 }

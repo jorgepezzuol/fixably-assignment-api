@@ -1,17 +1,14 @@
 {
-    "name": "akrabat/slim4-empty",
-    "description": "Empty Slim 4 project",
+    "name": "fixably-api-assignment",
+    "description": "Test assignment for fixably",
     "keywords": [
         "slim", "slim framwork", "psr7"
     ],
-    "homepage": "http://github.com/akrabat/slim4-empty",
     "type": "project",
     "license": "MIT",
     "authors": [
         {
-            "name": "Rob Allen",
-            "email": "rob@akrabat.com",
-            "homepage": "https://akrabat.com"
+            "name": "Jorge Pezzuol"
         }
     ],
     "require": {

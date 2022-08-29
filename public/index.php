@@ -6,6 +6,7 @@ use App\Service\FixablyApiService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Slim\Factory\AppFactory;
+use GuzzleHttp\Client;
 
 require __DIR__ . '/../vendor/autoload.php';
 
@@ -22,7 +23,8 @@ $app->get('/[{name}]', function (
 ): ResponseInterface {
 
     try {
-        $service = new FixablyApiService();
+        // TODO: factory
+        $service = new FixablyApiService(new Client());
         $tokenResponseDto = $service->fetchToken();
 
         $response->getBody()->write(json_encode(
