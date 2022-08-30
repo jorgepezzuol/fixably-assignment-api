@@ -3,3 +3,4 @@
 .gitattributes
 phpunit.phar
 .idea/
+.env

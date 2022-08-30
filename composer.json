@@ -1,20 +1,9 @@
 {
-    "name": "fixably-api-assignment",
-    "description": "Test assignment for fixably",
-    "keywords": [
-        "slim", "slim framwork", "psr7"
-    ],
-    "type": "project",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "Jorge Pezzuol"
-        }
-    ],
     "require": {
         "slim/slim": "^4.2",
         "slim/psr7": "^1.0",
-        "guzzlehttp/guzzle": "~5.0"
+        "guzzlehttp/guzzle": "~5.0",
+        "vlucas/phpdotenv": "^5.4"
     },
     "autoload": {
         "psr-4": {

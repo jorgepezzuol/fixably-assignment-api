@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Test;
 
-use App\Service\FixablyApiService;
+use App\Service\OrderService;
 use GuzzleHttp\Client;
 use GuzzleHttp\Message\Response;
 use GuzzleHttp\Stream\Stream;
@@ -37,13 +37,13 @@ class FixablyApiServiceTest extends TestCase
      * @param int   $expectedStatusCode
      * @param array $expectedResponse
      *
-     * @return FixablyApiService
+     * @return OrderService
      */
-    public function getFixablyApiService(int $expectedStatusCode, array $expectedResponse): FixablyApiService
+    public function getFixablyApiService(int $expectedStatusCode, array $expectedResponse): OrderService
     {
         $mockedGuzzleClient = $this->getMockedGuzzleClient($expectedStatusCode, $expectedResponse);
 
-        return new FixablyApiService($mockedGuzzleClient);
+        return new OrderService($mockedGuzzleClient);
     }
 
     /**

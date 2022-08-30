@@ -2,7 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Service\FixablyApiService;
+use App\Service\OrderService;
+use App\service\TokenService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Slim\Factory\AppFactory;
@@ -12,34 +13,32 @@ require __DIR__ . '/../vendor/autoload.php';
 
 $app = AppFactory::create();
 
-// Register middleware
-//$app->addRoutingMiddleware();
-//$app->addBodyParsingMiddleware();
-//$app->addErrorMiddleware(true, true, true);
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
+$dotenv->load();
 
-$app->get('/[{name}]', function (
-    ServerRequestInterface $request,
-    ResponseInterface $response
+$app->get('/orders', function (
+    ServerRequestInterface $httpRequest,
+    ResponseInterface $httpResponse
 ): ResponseInterface {
-
     try {
-        // TODO: factory
-        $service = new FixablyApiService(new Client());
-        $tokenResponseDto = $service->fetchToken();
+        $service = new OrderService(new Client());
+        $response = $service->getOrdersByStatus();
 
-        $response->getBody()->write(json_encode(
+        $httpResponse->getBody()->write(json_encode(
             [
-                'status' => $tokenResponseDto->getStatusCode(),
+                'status' => $response->getStatusCode(),
                 'data' => [
-                    'token' => $tokenResponseDto->getToken()
+                    'page' => $response->getPage(),
+                    'orders' => $response->getOrders()
                 ]
             ]
         ));
+
     } catch (Exception $exception) {
 
     }
 
-    return $response->withHeader('Content-type', 'application/json');;
+    return $httpResponse->withHeader('Content-type', 'application/json');;
 });
 
 $app->run();
