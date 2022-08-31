@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Dto;
 
-class GetOrdersByStatusDto
+class OrdersListDto
 {
     /**
      * @var int
@@ -21,7 +21,7 @@ class GetOrdersByStatusDto
      */
     private array $orders;
 
-    public function __construct(int $statusCode, int $page, array $orders = [])
+    public function __construct(int $statusCode, int $page, array $orders)
     {
         $this->statusCode = $statusCode;
         $this->page = $page;

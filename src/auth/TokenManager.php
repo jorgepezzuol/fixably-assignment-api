@@ -1,31 +1,26 @@
 <?php
 
-namespace App\service;
+declare(strict_types=1);
+
+namespace App\Auth;
 
 use App\Dto\FetchTokenDto;
-use GuzzleHttp\Client;
+use App\Enum\FixablyEnum;
 
-abstract class AbstractFixablyApiService
+class TokenManager
 {
-    protected const FIXABLY_API_URL = 'https://careers-api.fixably.com';
-    protected const FIXABLY_HEADER = 'X-Fixably-Token';
-
-    /**
-     * @var Client
-     */
-    protected Client $client;
-
+    private const FIXABLY_HEADER = 'X-Fixably-Token';
     private const MAX_FETCH_TOKEN_ATTEMPTS = 3;
 
-    public function __construct(Client $client)
-    {
-        $this->client = $client;
-    }
+    /**
+     * @var Token
+     */
+    private Token $token;
 
     /**
      * @return array
      */
-    protected function createHeaderWithToken(): array
+    public function createHeaderWithToken(): array
     {
         $response = $this->fetchToken();
         $token = $response->getToken();
@@ -38,11 +33,12 @@ abstract class AbstractFixablyApiService
     }
 
     /**
-     * @return FetchTokenDto
+     * @return Token
      */
-    private function fetchToken(): FetchTokenDto
+    private function fetchToken(): Token
     {
-        $endpoint = sprintf('%s/token', self::FIXABLY_API_URL);
+
+        $endpoint = sprintf('%s/token', FixablyEnum::API_URL);
         $attempt = 0;
         $requestBody = [
             'body' => [
@@ -61,8 +57,6 @@ abstract class AbstractFixablyApiService
             }
         } while ($statusCode !== 200 && $attempt <= self::MAX_FETCH_TOKEN_ATTEMPTS);
 
-        $token = $response->json()['token'] ?? 'EMPTY_TOKEN';
-
-        return new FetchTokenDto($statusCode, $token);
+        $tokenString = $response->json()['token'] ?? 'EMPTY_TOKEN';
     }
 }

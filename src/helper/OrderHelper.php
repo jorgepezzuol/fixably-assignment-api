@@ -1,33 +1,63 @@
 <?php
 
-namespace App\helper;
+declare(strict_types=1);
+
+namespace App\Helper;
+
+use App\Enum\StatusEnum;
 
 class OrderHelper
 {
-
-    public static function formatOrdersByStatus(array $orders = []): array
+    /**
+     * @param array $orders
+     *
+     * @return array
+     */
+    public static function sortOrdersByStatus(array $orders): array
     {
         $results = $orders['results'] ?? [];
         $groupedOrders = [];
+        $ordersAmount = count($results);
 
         foreach ($results as $order) {
-            $status = $order['status'];
+            $status = StatusEnum::STATUSES[$order['status']] ?? 'Unknown';
 
-            if (!array_key_exists($status, $groupedOrders)) {
+            if (!isset($groupedOrders[$status])) {
                 $groupedOrders[$status] = [];
+                $groupedOrders[$status]['amount'] = 0;
+                $groupedOrders[$status]['average'] = '';
             }
 
-            $groupedOrders[$status][] = $order;
+            $amount = $groupedOrders[$status]['amount'] += 1;
+            $avg = ($amount / $ordersAmount) * 100;
+
+            $groupedOrders[$status]['average'] = round($avg, 2) . '%';
+            $groupedOrders[$status]['orders'][] = $order;
         }
 
-//        echo '<pre>';
-//        print_r($groupedOrders);
-//        exit;
-
-        uksort($groupedOrders, function ($i, $j) use ($results) {
-            return $results[$i]['status'] > $results[$j]['status'];
-        });
+        array_multisort(array_column($groupedOrders, 'amount'), SORT_DESC, $groupedOrders);
 
         return $groupedOrders;
+    }
+
+    /**
+     * @param array $orders
+     *
+     * @return array
+     */
+    public static function filterByAssignedOrders(array $orders): array
+    {
+        $results = $orders['results'] ?? [];
+        $assignedOrders = [];
+
+        foreach ($results as $order) {
+            $technician = $order['technician'] ?? null;
+
+            if ($technician !== null) {
+                $assignedOrders[] = $order;
+            }
+        }
+
+        return $assignedOrders;
     }
 }
