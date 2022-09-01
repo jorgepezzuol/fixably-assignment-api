@@ -12,6 +12,27 @@ abstract class AbstractBaseModel
     private int $id = 0;
 
     /**
+     * @var array
+     */
+    private array $errors;
+
+    /**
+     * @return array
+     */
+    public function getErrors(): array
+    {
+        return $this->errors;
+    }
+
+    /**
+     * @param array $errors
+     */
+    public function setErrors(array $errors): void
+    {
+        $this->errors = $errors;
+    }
+
+    /**
      * @return int
      */
     public function getId(): int

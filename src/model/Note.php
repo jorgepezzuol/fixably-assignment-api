@@ -23,11 +23,13 @@ class Note extends AbstractBaseModel
 
 
     /**
+     * @param int    $orderId
      * @param string $type
      * @param string $description
      */
-    public function __construct(string $type, string $description)
+    public function __construct(int $orderId, string $type, string $description)
     {
+        $this->orderId = $orderId;
         $this->type = $type;
         $this->description = $description;
     }
@@ -54,13 +56,5 @@ class Note extends AbstractBaseModel
     public function getOrderId(): int
     {
         return $this->orderId;
-    }
-
-    /**
-     * @param int $orderId
-     */
-    public function setOrderId(int $orderId): void
-    {
-        $this->orderId = $orderId;
     }
 }

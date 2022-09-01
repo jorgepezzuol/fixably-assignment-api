@@ -4,19 +4,40 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use App\dto\NoteDto;
+use App\Auth\TokenManager;
+use App\Dto\NoteDto;
 use App\Dto\OrderDto;
 use App\Dto\OrderNoteDto;
 use App\Dto\OrdersListDto;
-use App\enum\FixablyEnum;
+use App\Enum\FixablyEnum;
+use App\Helper\NoteHelper;
 use App\Helper\OrderHelper;
 use App\Model\Order;
 use App\Model\Note;
-use Exception;
 use GuzzleHttp\Client;
 
-class OrderService extends BaseService
+class OrderService
 {
+    /**
+     * @var Client
+     */
+    private Client $guzzleClient;
+
+    /**
+     * @var TokenManager
+     */
+    private TokenManager $tokenManager;
+
+    /**
+     * @param Client       $guzzleClient
+     * @param TokenManager $tokenManager
+     */
+    public function __construct(Client $guzzleClient, TokenManager $tokenManager)
+    {
+        $this->guzzleClient = $guzzleClient;
+        $this->tokenManager = $tokenManager;
+    }
+
     /**
      * @param int $page
      *
@@ -26,7 +47,7 @@ class OrderService extends BaseService
     {
         $endpoint = sprintf('%s/orders?page=%s', FixablyEnum::API_URL, 33);
 
-        $response = $this->client->get($endpoint, $this->createHeaderWithToken());
+        $response = $this->guzzleClient->get($endpoint, $this->tokenManager->createHeaders());
 
         $sortedOrders = OrderHelper::sortOrdersByStatus($response->json());
 
@@ -49,8 +70,8 @@ class OrderService extends BaseService
             ]
         ];
 
-        $response = $this->client->post($endpoint, array_merge(
-            $this->createHeaderWithToken(), $requestBody
+        $response = $this->guzzleClient->post($endpoint, array_merge(
+            $this->tokenManager->createHeaders(), $requestBody
         ));
 
         $assingedOrders = OrderHelper::filterByAssignedOrders($response->json());
@@ -59,42 +80,16 @@ class OrderService extends BaseService
     }
 
     /**
-     * @param Order $orderToBeCreated
-     * @param Note  $noteToBeCreated
-     *
-     * @return OrderDto
-     * @throws Exception
-     */
-    public function createOrderWithNote(Order $orderToBeCreated, Note $noteToBeCreated): OrderDto
-    {
-        $createOrderResponse = $this->createOrder($orderToBeCreated);
-
-        if ($createOrderResponse->getStatusCode() !== 200 || $createOrderResponse->getOrder()->getId() === 0) {
-            return new OrderDto($orderToBeCreated, $statusCode, 'Error while creating order');
-        }
-
-        $orderCreated = $createOrderResponse->getOrder();
-        $noteToBeCreated->setOrderId($orderCreated->getId());
-        $createNoteResponse = $this->createNote($noteToBeCreated);
-
-        if ($createNoteResponse->getStatusCode() !== 200 || $createNoteResponse->getNote()->getId() === 0) {
-            $errorMessage = sprintf('Error while creating note for order: %s', $orderCreated->getId());
-            return new OrderDto($orderCreated, $createNoteResponse->getStatusCode(), $errorMessage);
-        }
-
-        $orderCreated->setNote($createNoteResponse->getNote());
-
-        return new OrderDto($order, 200, 'Order and note created');
-    }
-
-    /**
      * @param Order $order
      *
      * @return OrderDto
-     * @throws Exception
      */
     public function createOrder(Order $order): OrderDto
     {
+        if (!OrderHelper::isOrderValid($order)) {
+            return new OrderDto($order, 400, implode(', ', $order->getErrors()));
+        }
+
         $endpoint = sprintf('%s/orders/create', FixablyEnum::API_URL, 1);
 
         $requestBody = [
@@ -105,8 +100,8 @@ class OrderService extends BaseService
             ]
         ];
 
-        $response = $this->client->post($endpoint, array_merge(
-            $this->createHeaderWithToken(), $requestBody
+        $response = $this->guzzleClient->post($endpoint, array_merge(
+            $this->tokenManager->createHeaders(), $requestBody
         ));
 
         $message = 'Error while creating order';
@@ -127,6 +122,10 @@ class OrderService extends BaseService
      */
     public function createNote(Note $note): NoteDto
     {
+        if (!NoteHelper::isNoteValid($note)) {
+            return new NoteDto($note, 400, implode(', ', $note->getErrors()));
+        }
+
         $endpoint = sprintf('%s/orders/%s/notes/create', FixablyEnum::API_URL, $note->getOrderId());
 
         $requestBody = [
@@ -136,8 +135,8 @@ class OrderService extends BaseService
             ]
         ];
 
-        $response = $this->client->post($endpoint, array_merge(
-            $this->createHeaderWithToken(), $requestBody
+        $response = $this->guzzleClient->post($endpoint, array_merge(
+            $this->tokenManager->createHeaders(), $requestBody
         ));
 
         $message = 'Error while creating order';
@@ -147,6 +146,6 @@ class OrderService extends BaseService
             $message = sprintf('Note %s created', $note->getId());
         }
 
-        return new NoteDto($response->getStatusCode(), $note, $message);
+        return new NoteDto($note, $response->getStatusCode(), $message);
     }
 }

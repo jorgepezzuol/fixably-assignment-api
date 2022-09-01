@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Helper;
 
+use App\Enum\DeviceTypeEnum;
 use App\Enum\StatusEnum;
+use App\Model\Order;
 
 class OrderHelper
 {
@@ -59,5 +61,36 @@ class OrderHelper
         }
 
         return $assignedOrders;
+    }
+
+    /**
+     * @param Order $order
+     *
+     * @return bool
+     */
+    public static function isOrderValid(Order $order): bool
+    {
+        $errors = [];
+
+        if (!is_string($order->getDeviceManufacturer()) || empty($order->getDeviceManufacturer())) {
+            $errors[] = 'Device manufacturer is empty or not a string';
+        }
+
+        if (!is_string($order->getDeviceBrand()) || empty($order->getDeviceBrand())) {
+            $errors[] = 'Device brand is empty or not a string';
+        }
+
+        if (
+            !is_string($order->getDeviceType())
+            || empty($order->getDeviceType())
+            || !in_array($order->getDeviceType(), DeviceTypeEnum::DEVICE_TYPES)
+        ) {
+            $deviceTypes = implode(", ", DeviceTypeEnum::DEVICE_TYPES);
+            $errors[] = "Device type is empty, not a string or not a valid type ({$deviceTypes})";
+        }
+
+        $order->setErrors($errors);
+
+        return count($order->getErrors()) === 0;
     }
 }

@@ -4,50 +4,84 @@ declare(strict_types=1);
 
 namespace App\Auth;
 
-use App\Dto\FetchTokenDto;
 use App\Enum\FixablyEnum;
+use DateTime;
+use GuzzleHttp\Client;
 
 class TokenManager
 {
     private const FIXABLY_HEADER = 'X-Fixably-Token';
     private const MAX_FETCH_TOKEN_ATTEMPTS = 3;
+    private const MAX_TOKEN_LIFESPAN_IN_MINUTES = 5; // ??
 
     /**
-     * @var Token
+     * @var string
      */
-    private Token $token;
+    private string $token = '';
+
+    /**
+     * @var DateTime
+     */
+    private DateTime $tokenExpireTime;
 
     /**
      * @return array
      */
-    public function createHeaderWithToken(): array
+    public function createHeaders(): array
     {
-        $response = $this->fetchToken();
-        $token = $response->getToken();
-
         return [
             'headers' => [
-                self::FIXABLY_HEADER => $token
+                self::FIXABLY_HEADER => $this->fetchToken()
             ]
         ];
     }
 
     /**
-     * @return Token
+     * @return bool
      */
-    private function fetchToken(): Token
+    private function isTokenExpired(): bool
     {
+        if (!$this->token || $this->tokenExpireTime >= new DateTime()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @return void
+     */
+    private function setTokenExpireTime(): void
+    {
+        $maxTokenLifespan = self::MAX_TOKEN_LIFESPAN_IN_MINUTES;
+
+        $this->tokenExpireTime = new DateTime();
+        $this->tokenExpireTime->modify("+{$maxTokenLifespan}");
+    }
+
+    /**
+     * @return string
+     */
+    private function fetchToken(): string
+    {
+        if (!$this->isTokenExpired()) {
+            return $this->token;
+        }
 
         $endpoint = sprintf('%s/token', FixablyEnum::API_URL);
-        $attempt = 0;
+
         $requestBody = [
             'body' => [
                 'Code' => $_ENV['FIXABLY_API_CODE']
             ]
         ];
 
+        $attempt = 0;
+
+        $guzzleClient = new Client();
+
         do {
-            $response = $this->client->post($endpoint, $requestBody);
+            $response = $guzzleClient->post($endpoint, $requestBody);
 
             $statusCode = $response->getStatusCode();
 
@@ -57,6 +91,8 @@ class TokenManager
             }
         } while ($statusCode !== 200 && $attempt <= self::MAX_FETCH_TOKEN_ATTEMPTS);
 
-        $tokenString = $response->json()['token'] ?? 'EMPTY_TOKEN';
+        $this->setTokenExpireTime();
+
+        return $this->token = $response->json()['token'] ?? 'EMPTY_TOKEN';
     }
 }

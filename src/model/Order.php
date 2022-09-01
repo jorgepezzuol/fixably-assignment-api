@@ -19,7 +19,7 @@ class Order extends AbstractBaseModel
     /**
      * @var Note|null
      */
-    private ?Note $note;
+    private ?Note $note = null;
 
     /**
      * @var string
@@ -79,7 +79,7 @@ class Order extends AbstractBaseModel
      */
     public function getNote(): ?Note
     {
-        return $this->note ?? null;
+        return $this->note;
     }
 
     /**

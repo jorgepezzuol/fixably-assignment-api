@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\dto;
+namespace App\Dto;
 
 use App\Model\Note;
 
@@ -23,10 +23,10 @@ class NoteDto
      */
     private string $message;
 
-    public function __construct(int $statusCode, Note $note, string $message = '')
+    public function __construct(Note $note, int $statusCode, string $message = '')
     {
-        $this->statusCode = $statusCode;
         $this->note = $note;
+        $this->statusCode = $statusCode;
         $this->message = $message;
     }
 

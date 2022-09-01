@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Auth\TokenManager;
 use App\Dto\OrderNoteDto;
 use App\Model\Note;
 use App\Model\Order;
@@ -24,7 +25,7 @@ $app->get('/orders', function (
     ResponseInterface $httpResponse
 ): ResponseInterface {
     try {
-        $orderService = new OrderService(new Client());
+        $orderService = new OrderService(new Client(), new TokenManager());
         $response = $orderService->getOrdersByStatus();
 
         $httpResponse->getBody()->write(json_encode(
@@ -38,7 +39,7 @@ $app->get('/orders', function (
         ));
 
     } catch (Exception $exception) {
-
+        var_dump($exception->getMessage());
     }
 
     return $httpResponse->withHeader('Content-type', 'application/json');;
@@ -49,7 +50,7 @@ $app->get('/orders/assigned', function (
     ResponseInterface $httpResponse
 ): ResponseInterface {
     try {
-        $orderService = new OrderService(new Client());
+        $orderService = new OrderService(new Client(), new TokenManager());
         $response = $orderService->getAssignedOrdersByDevice();
 
         $httpResponse->getBody()->write(json_encode(
@@ -63,7 +64,7 @@ $app->get('/orders/assigned', function (
         ));
 
     } catch (Exception $exception) {
-
+        var_dump($exception->getMessage());
     }
 
     return $httpResponse->withHeader('Content-type', 'application/json');;
@@ -81,27 +82,56 @@ $app->post('/orders/create', function (
         $order->setDeviceBrand($postParams['DeviceBrand']);
         $order->setDeviceType($postParams['DeviceType']);
 
-        $note = new Note($postParams['Type'], $postParams['NoteDescription']);
+        $orderService = new OrderService(new Client(), new TokenManager());
+        $createOrderResponse = $orderService->createOrder($order);
+        $createdOrder = $createOrderResponse->getOrder();
 
-        $orderService = new OrderService(new Client());
-        $response = $orderService->createOrderWithNote($order, $note);
+        if ($createOrderResponse->getStatusCode() !== 200 && $createdOrder->getId() === 0) {
+            $httpResponse->getBody()->write(json_encode(
+                [
+                    'status' => $createOrderResponse->getStatusCode(),
+                    'data' => [
+                        'message' => $createOrderResponse->getMessage(),
+                    ]
+                ]
+            ));
+            return $httpResponse->withStatus($createOrderResponse->getStatusCode())->withHeader('Content-type', 'application/json');;
+        }
+
+        $note = new Note($createdOrder->getId(), $postParams['NoteType'], $postParams['NoteDescription']);
+        $createdNoteResponse = $orderService->createNote($note);
+        $createdNote = $createdNoteResponse->getNote();
+
+        if ($createdNoteResponse->getStatusCode() !== 200 && $createdNote->getId() === 0) {
+            $httpResponse->getBody()->write(json_encode(
+                [
+                    'status' => $createdNoteResponse->getStatusCode(),
+                    'data' => [
+                        'message' => $createdNoteResponse->getMessage(),
+                    ]
+                ]
+            ));
+            return $httpResponse->withStatus($createdNoteResponse->getStatusCode())->withHeader('Content-type', 'application/json');;
+        }
+
+        $createdOrder->setNote($createdNote);
 
         $httpResponse->getBody()->write(json_encode(
             [
-                'status' => $response->getStatusCode(),
+                'status' => $createdNoteResponse->getStatusCode(),
                 'data' => [
-                    'message' => $response->getMessage(),
-                    'orderId' => $response->getOrder()->getId(),
-                    'noteId' => $response->getNoteId(),
+                    'message' => $createOrderResponse->getMessage(),
+                    'orderId' => $createdOrder->getId(),
+                    'noteId' => $createdOrder->getNote()->getId()
                 ]
             ]
         ));
 
     } catch (Exception $exception) {
-
+        var_dump($exception->getMessage() . ' - ' . $exception->getTrace());
     }
 
-    return $httpResponse->withHeader('Content-type', 'application/json');;
+    return $httpResponse->withStatus(200)->withHeader('Content-type', 'application/json');;
 });
 
 $app->run();

@@ -6,8 +6,14 @@ namespace App\Enum;
 
 class DeviceTypeEnum
 {
-    public const LAPTOP = 'LAPTOP';
-    public const PHONE = 'PHONE';
-    public const TABLET = 'TABLET';
+    public const LAPTOP = 'Laptop';
+    public const PHONE = 'Phone';
+    public const TABLET = 'Tablet';
+
+    public const DEVICE_TYPES = [
+        self::LAPTOP,
+        self::PHONE,
+        self::TABLET
+    ];
 }
 
