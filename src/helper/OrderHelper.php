@@ -83,9 +83,9 @@ class OrderHelper
         if (
             !is_string($order->getDeviceType())
             || empty($order->getDeviceType())
-            || !in_array($order->getDeviceType(), DeviceTypeEnum::DEVICE_TYPES)
+            || !in_array($order->getDeviceType(), DeviceTypeEnum::TYPES)
         ) {
-            $deviceTypes = implode(", ", DeviceTypeEnum::DEVICE_TYPES);
+            $deviceTypes = implode(", ", DeviceTypeEnum::TYPES);
             $errors[] = "Device type is empty, not a string or not a valid type ({$deviceTypes})";
         }
 

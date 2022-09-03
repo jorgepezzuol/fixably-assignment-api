@@ -134,4 +134,19 @@ $app->post('/orders/create', function (
     return $httpResponse->withStatus(200)->withHeader('Content-type', 'application/json');;
 });
 
+$app->post('/reports', function (
+    ServerRequestInterface $httpRequest,
+    ResponseInterface $httpResponse
+): ResponseInterface {
+    try {
+        $orderService = new OrderService(new Client(), new TokenManager());
+        $response = $orderService->generateWeeklyReport(new DateTime('2020-11-01'), new DateTime('2020-11-30'));
+
+    } catch (Exception $exception) {
+        var_dump($exception->getMessage());
+    }
+
+    return $httpResponse->withHeader('Content-type', 'application/json');;
+});
+
 $app->run();

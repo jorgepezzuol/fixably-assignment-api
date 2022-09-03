@@ -9,11 +9,15 @@ use App\Dto\NoteDto;
 use App\Dto\OrderDto;
 use App\Dto\OrderNoteDto;
 use App\Dto\OrdersListDto;
+use App\Dto\ReportDto;
 use App\Enum\FixablyEnum;
 use App\Helper\NoteHelper;
 use App\Helper\OrderHelper;
 use App\Model\Order;
 use App\Model\Note;
+use DateInterval;
+use DateTime;
+use Exception;
 use GuzzleHttp\Client;
 
 class OrderService
@@ -147,5 +151,90 @@ class OrderService
         }
 
         return new NoteDto($note, $response->getStatusCode(), $message);
+    }
+
+    /**
+     * TODO: validate range (at least 1 week distance) - validate dates
+     *
+     * @param DateTime $fromDate
+     * @param DateTime $toDate
+     *
+     * @return ReportDto
+     * @throws Exception
+     */
+    public function generateWeeklyReport(DateTime $fromDate, DateTime $toDate): ReportDto
+    {
+        $endpoint = sprintf('%s/report/%s/%s', FixablyEnum::API_URL,
+            $fromDate->format('Y-m-d'),
+            $toDate->format('Y-m-d')
+        );
+
+        $weeklyReport = [
+            'totalInvoices' => 0,
+            'totalInvoicedAmount' => 0.0,
+            'weeks' => []
+        ];
+
+        $page = 1;
+
+        do {
+            $url = sprintf('%s?page=%s', $endpoint, $page);
+            $response = $this->guzzleClient->post($url, $this->tokenManager->createHeaders());
+            $results = $response->json()['results'] ?? null;
+
+            if ($results !== null) {
+                foreach ($results as $result) {
+                    $weeklyReport['totalInvoices'] += 1;
+                    $weeklyReport['totalInvoicedAmount'] += $result['amount'];
+
+                    $createdDateTime = new DateTime($result['created']);
+                    $weekNumber = $createdDateTime->format('W');
+                    $year = $createdDateTime->format('Y');
+
+                    $weekStartDate = (new DateTime())->setISODate((int)$year, (int)$weekNumber)->format('Y-m-d');
+
+                    if (!isset($weeklyReport['weeks'][$weekStartDate])) {
+                        $weeklyReport['weeks'][$weekStartDate] = [
+                            'totalInvoices' => 0,
+                            'totalInvoicedAmount' => 0.0
+                        ];
+                    }
+
+                    $weeklyReport['weeks'][$weekStartDate]['totalInvoices'] += 1;
+                    $weeklyReport['weeks'][$weekStartDate]['totalInvoicedAmount'] += $result['amount'];
+                }
+            }
+
+            $page += 1;
+
+        } while ($response->getStatusCode() === 200 && $results !== null);
+
+        $weeks = $weeklyReport['weeks'];
+        $keys = array_keys($weeks);
+
+        for ($i = 0; $i < count($keys) - 1; $i++) {
+            $current = $weeks[$keys[$i]];
+            $next = $weeks[$keys[$i + 1]] ?? false;
+
+            if ($next !== false) {
+                $nextInvoices = $next['totalInvoices'];
+                $nextAmount = $next['totalInvoicedAmount'];
+
+                $prevInvoices = $current['totalInvoices'];
+                $prevAmount = $current['totalInvoicedAmount'];
+
+                $percentageInvoices = round(($nextInvoices - $prevInvoices) / $prevInvoices * 100, 1);
+                $percentageAmount = round(($nextAmount - $prevAmount) / $prevAmount * 100, 1);
+
+                $weeklyReport['weeks'][$keys[$i + 1]]['totalInvoiceGrowth'] = sprintf('%s%s', $percentageInvoices, '%');
+                $weeklyReport['weeks'][$keys[$i + 1]]['totalInvoiceAmountGrowth'] = sprintf('%s%s', $percentageAmount, '%');
+            }
+        }
+
+        echo '<pre>';
+        print_r($weeklyReport);
+        exit;
+
+        return new ReportDto();
     }
 }

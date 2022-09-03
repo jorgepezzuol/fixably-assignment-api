@@ -10,7 +10,7 @@ class DeviceTypeEnum
     public const PHONE = 'Phone';
     public const TABLET = 'Tablet';
 
-    public const DEVICE_TYPES = [
+    public const TYPES = [
         self::LAPTOP,
         self::PHONE,
         self::TABLET
