@@ -10,8 +10,7 @@ use GuzzleHttp\Client;
 class TokenManager
 {
     private const TOKEN_ENDPOINT = 'https://careers-api.fixably.com/token';
-    private const MAX_FETCH_TOKEN_ATTEMPTS = 3;
-    private const MAX_TOKEN_LIFESPAN_IN_MINUTES = 5; // ??
+    private const MAX_TOKEN_LIFESPAN_IN_MINUTES = 1; // ??
 
     /**
      * @var string
@@ -38,19 +37,8 @@ class TokenManager
             ]
         ];
 
-        $attempt = 0;
         $guzzleClient = new Client();
-
-        do {
-            $response = $guzzleClient->post(self::TOKEN_ENDPOINT, $requestBody);
-            $statusCode = $response->getStatusCode();
-
-            if ($statusCode !== 200) {
-                $attempt += 1;
-                sleep(1);
-            }
-        } while ($statusCode !== 200 && $attempt <= self::MAX_FETCH_TOKEN_ATTEMPTS);
-
+        $response = $guzzleClient->post(self::TOKEN_ENDPOINT, $requestBody);
         $this->setTokenExpireTime();
 
         return $this->token = $response->json()['token'] ?? 'EMPTY_TOKEN';
@@ -61,7 +49,7 @@ class TokenManager
      */
     private function isTokenExpired(): bool
     {
-        return empty($this->token) || $this->tokenExpireTime >= new DateTime();
+        return empty($this->token) || new DateTime() >= $this->tokenExpireTime;
     }
 
     /**
@@ -72,6 +60,6 @@ class TokenManager
         $maxTokenLifespan = self::MAX_TOKEN_LIFESPAN_IN_MINUTES;
 
         $this->tokenExpireTime = new DateTime();
-        $this->tokenExpireTime->modify("+{$maxTokenLifespan}");
+        $this->tokenExpireTime->modify("+{$maxTokenLifespan} minutes");
     }
 }
