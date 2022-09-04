@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Dto;
 
+use App\Model\Order;
+
 class OrdersListDto
 {
     /**
@@ -12,19 +14,13 @@ class OrdersListDto
     private int $statusCode;
 
     /**
-     * @var int
-     */
-    private int $page;
-
-    /**
-     * @var array
+     * @var Order[]
      */
     private array $orders;
 
-    public function __construct(int $statusCode, int $page, array $orders)
+    public function __construct(int $statusCode, array $orders)
     {
         $this->statusCode = $statusCode;
-        $this->page = $page;
         $this->orders = $orders;
     }
 
@@ -34,14 +30,6 @@ class OrdersListDto
     public function getStatusCode(): int
     {
         return $this->statusCode;
-    }
-
-    /**
-     * @return int
-     */
-    public function getPage(): int
-    {
-        return $this->page;
     }
 
     /**

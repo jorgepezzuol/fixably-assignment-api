@@ -4,83 +4,79 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use App\Auth\TokenManager;
-use App\Dto\NoteDto;
 use App\Dto\OrderDto;
 use App\Dto\OrderNoteDto;
 use App\Dto\OrdersListDto;
-use App\Dto\ReportDto;
-use App\Enum\FixablyEnum;
-use App\Helper\NoteHelper;
+use App\Enum\StatusEnum;
 use App\Helper\OrderHelper;
 use App\Model\Order;
-use App\Model\Note;
-use DateInterval;
 use DateTime;
 use Exception;
-use GuzzleHttp\Client;
 
-class OrderService
+class OrderService extends AbstractBaseService
 {
     /**
-     * @var Client
+     * @return OrdersListDto
      */
-    private Client $guzzleClient;
-
-    /**
-     * @var TokenManager
-     */
-    private TokenManager $tokenManager;
-
-    /**
-     * @param Client       $guzzleClient
-     * @param TokenManager $tokenManager
-     */
-    public function __construct(Client $guzzleClient, TokenManager $tokenManager)
+    public function getOrdersByStatus(): OrdersListDto
     {
-        $this->guzzleClient = $guzzleClient;
-        $this->tokenManager = $tokenManager;
+        $endpoint = sprintf('%s/orders', self::FIXABLY_API_URL);
+        $page = 1;
+        $orders = [];
+
+        do {
+            $url = sprintf('%s?page=%s', $endpoint, $page);
+            $response = $this->guzzleClient->get($url, $this->createHeaders());
+            $results = $response->json()['results'] ?? [];
+
+            foreach ($results as $result) {
+                $orders[] = $this->convertArrayToOrder($result);
+            }
+
+            $page += 1;
+            $statusCode = $response->getStatusCode();
+        } while ($statusCode === 200 && count($results) > 0);
+
+        $sortedOrders = $this->sortOrdersByStatus($orders);
+
+        return new OrdersListDto($statusCode, $sortedOrders);
     }
 
     /**
-     * @param int $page
+     * @param string $deviceBrand
      *
      * @return OrdersListDto
      */
-    public function getOrdersByStatus(int $page = 1): OrdersListDto
+    public function getAssignedOrdersByDevice(string $deviceBrand): OrdersListDto
     {
-        $endpoint = sprintf('%s/orders?page=%s', FixablyEnum::API_URL, 33);
-
-        $response = $this->guzzleClient->get($endpoint, $this->tokenManager->createHeaders());
-
-        $sortedOrders = OrderHelper::sortOrdersByStatus($response->json());
-
-        return new OrdersListDto($response->getStatusCode(), $page, $sortedOrders);
-    }
-
-    /**
-     * @param string $device
-     * @param int    $page
-     *
-     * @return OrdersListDto
-     */
-    public function getAssignedOrdersByDevice(string $device = 'iPhone', int $page = 1): OrdersListDto
-    {
-        $endpoint = sprintf('%s/search/devices?page=%s', FixablyEnum::API_URL, 1);
-
+        $endpoint = sprintf('%s/search/devices', self::FIXABLY_API_URL);
         $requestBody = [
             'body' => [
-                'Criteria' => $device
+                'Criteria' => sprintf('%s *', $deviceBrand)
             ]
         ];
+        $page = 1;
+        $orders = [];
 
-        $response = $this->guzzleClient->post($endpoint, array_merge(
-            $this->tokenManager->createHeaders(), $requestBody
-        ));
+        do {
+            $url = sprintf('%s?page=%s', $endpoint, $page);
+            $response = $this->guzzleClient->post($url, array_merge(
+                $this->createHeaders(), $requestBody
+            ));
 
-        $assingedOrders = OrderHelper::filterByAssignedOrders($response->json());
+            $results = $response->json()['results'] ?? [];
 
-        return new OrdersListDto($response->getStatusCode(), $page, $assingedOrders);
+            foreach ($results as $result) {
+                $orders[] = $this->convertArrayToOrder($result);
+            }
+
+            $page += 1;
+            $statusCode = $response->getStatusCode();
+        } while ($statusCode === 200 && count($results) > 0);
+
+        $sortedOrders = $this->filterByAssignedOrders($orders);
+
+        return new OrdersListDto($statusCode, $sortedOrders);
     }
 
     /**
@@ -90,11 +86,11 @@ class OrderService
      */
     public function createOrder(Order $order): OrderDto
     {
-        if (!OrderHelper::isOrderValid($order)) {
+        if (!$order->isValid()) {
             return new OrderDto($order, 400, implode(', ', $order->getErrors()));
         }
 
-        $endpoint = sprintf('%s/orders/create', FixablyEnum::API_URL, 1);
+        $endpoint = sprintf('%s/orders/create', self::FIXABLY_API_URL, 1);
 
         $requestBody = [
             'body' => [
@@ -105,7 +101,7 @@ class OrderService
         ];
 
         $response = $this->guzzleClient->post($endpoint, array_merge(
-            $this->tokenManager->createHeaders(), $requestBody
+            $this->createHeaders(), $requestBody
         ));
 
         $message = 'Error while creating order';
@@ -119,122 +115,76 @@ class OrderService
     }
 
     /**
-     * @param Note $note
+     * @param Order[] $orders
      *
-     * @return NoteDto
-     * @throws Exception
+     * @return array
      */
-    public function createNote(Note $note): NoteDto
+    private function sortOrdersByStatus(array $orders): array
     {
-        if (!NoteHelper::isNoteValid($note)) {
-            return new NoteDto($note, 400, implode(', ', $note->getErrors()));
+        $groupedOrders = [];
+        $ordersAmount = count($orders);
+
+        foreach ($orders as $order) {
+            $status = StatusEnum::STATUSES[$order->getStatus()];
+
+            if (!isset($groupedOrders[$status])) {
+                $groupedOrders[$status] = [];
+                $groupedOrders[$status]['amount'] = 0;
+                $groupedOrders[$status]['average'] = '';
+            }
+
+            $amount = $groupedOrders[$status]['amount'] += 1;
+            $avg = ($amount / $ordersAmount) * 100;
+
+            $groupedOrders[$status]['average'] = round($avg, 2) . '%';
+            $groupedOrders[$status]['orders'][] = $order->toArray();
         }
 
-        $endpoint = sprintf('%s/orders/%s/notes/create', FixablyEnum::API_URL, $note->getOrderId());
+        array_multisort(array_column($groupedOrders, 'amount'), SORT_DESC, $groupedOrders);
 
-        $requestBody = [
-            'body' => [
-                'Type' => $note->getType(),
-                'Description' => $note->getDescription(),
-            ]
-        ];
-
-        $response = $this->guzzleClient->post($endpoint, array_merge(
-            $this->tokenManager->createHeaders(), $requestBody
-        ));
-
-        $message = 'Error while creating order';
-
-        if ($response->getStatusCode() === 200 && isset($response->json()['id'])) {
-            $note->setId($response->json()['id']);
-            $message = sprintf('Note %s created', $note->getId());
-        }
-
-        return new NoteDto($note, $response->getStatusCode(), $message);
+        return $groupedOrders;
     }
 
     /**
-     * TODO: validate range (at least 1 week distance) - validate dates
+     * @param Order[] $orders
      *
-     * @param DateTime $fromDate
-     * @param DateTime $toDate
-     *
-     * @return ReportDto
-     * @throws Exception
+     * @return array
      */
-    public function generateWeeklyReport(DateTime $fromDate, DateTime $toDate): ReportDto
+    private function filterByAssignedOrders(array $orders): array
     {
-        $endpoint = sprintf('%s/report/%s/%s', FixablyEnum::API_URL,
-            $fromDate->format('Y-m-d'),
-            $toDate->format('Y-m-d')
-        );
+        $assignedOrders = [];
 
-        $weeklyReport = [
-            'totalInvoices' => 0,
-            'totalInvoicedAmount' => 0.0,
-            'weeks' => []
-        ];
+        foreach ($orders as $order) {
+            $technician = $order->getTechnicianName() ?? null;
 
-        $page = 1;
-
-        do {
-            $url = sprintf('%s?page=%s', $endpoint, $page);
-            $response = $this->guzzleClient->post($url, $this->tokenManager->createHeaders());
-            $results = $response->json()['results'] ?? null;
-
-            if ($results !== null) {
-                foreach ($results as $result) {
-                    $weeklyReport['totalInvoices'] += 1;
-                    $weeklyReport['totalInvoicedAmount'] += $result['amount'];
-
-                    $createdDateTime = new DateTime($result['created']);
-                    $weekNumber = $createdDateTime->format('W');
-                    $year = $createdDateTime->format('Y');
-
-                    $weekStartDate = (new DateTime())->setISODate((int)$year, (int)$weekNumber)->format('Y-m-d');
-
-                    if (!isset($weeklyReport['weeks'][$weekStartDate])) {
-                        $weeklyReport['weeks'][$weekStartDate] = [
-                            'totalInvoices' => 0,
-                            'totalInvoicedAmount' => 0.0
-                        ];
-                    }
-
-                    $weeklyReport['weeks'][$weekStartDate]['totalInvoices'] += 1;
-                    $weeklyReport['weeks'][$weekStartDate]['totalInvoicedAmount'] += $result['amount'];
-                }
-            }
-
-            $page += 1;
-
-        } while ($response->getStatusCode() === 200 && $results !== null);
-
-        $weeks = $weeklyReport['weeks'];
-        $keys = array_keys($weeks);
-
-        for ($i = 0; $i < count($keys) - 1; $i++) {
-            $current = $weeks[$keys[$i]];
-            $next = $weeks[$keys[$i + 1]] ?? false;
-
-            if ($next !== false) {
-                $nextInvoices = $next['totalInvoices'];
-                $nextAmount = $next['totalInvoicedAmount'];
-
-                $prevInvoices = $current['totalInvoices'];
-                $prevAmount = $current['totalInvoicedAmount'];
-
-                $percentageInvoices = round(($nextInvoices - $prevInvoices) / $prevInvoices * 100, 1);
-                $percentageAmount = round(($nextAmount - $prevAmount) / $prevAmount * 100, 1);
-
-                $weeklyReport['weeks'][$keys[$i + 1]]['totalInvoiceGrowth'] = sprintf('%s%s', $percentageInvoices, '%');
-                $weeklyReport['weeks'][$keys[$i + 1]]['totalInvoiceAmountGrowth'] = sprintf('%s%s', $percentageAmount, '%');
+            if ($technician !== null) {
+                $assignedOrders[] = $order->toArray();
             }
         }
 
-        echo '<pre>';
-        print_r($weeklyReport);
-        exit;
+        return $assignedOrders;
+    }
 
-        return new ReportDto();
+    /**
+     * @param array $result
+     *
+     * @return Order
+     */
+    private function convertArrayToOrder(array $result): Order
+    {
+        $order = new Order();
+        $order->setId($result['id']);
+        $order->setDeviceType($result['deviceType']);
+        $order->setDeviceManufacturer($result['deviceManufacturer']);
+        $order->setDeviceBrand($result['deviceBrand']);
+        $order->setTechnicianName($result['technician']);
+        $order->setStatus($result['status']);
+        try {
+            $order->setCreated(new DateTime($result['created']));
+        } catch (Exception $e) {
+            $order->setCreated(new DateTime());
+        }
+
+        return $order;
     }
 }

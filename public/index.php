@@ -6,7 +6,9 @@ use App\Auth\TokenManager;
 use App\Dto\OrderNoteDto;
 use App\Model\Note;
 use App\Model\Order;
+use App\Service\NoteService;
 use App\Service\OrderService;
+use App\Service\ReportService;
 use App\Service\TokenService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -32,7 +34,6 @@ $app->get('/orders', function (
             [
                 'status' => $response->getStatusCode(),
                 'data' => [
-                    'page' => $response->getPage(),
                     'ordersByStatus' => $response->getOrders()
                 ]
             ]
@@ -51,13 +52,12 @@ $app->get('/orders/assigned', function (
 ): ResponseInterface {
     try {
         $orderService = new OrderService(new Client(), new TokenManager());
-        $response = $orderService->getAssignedOrdersByDevice();
+        $response = $orderService->getAssignedOrdersByDevice('iPhone');
 
         $httpResponse->getBody()->write(json_encode(
             [
                 'status' => $response->getStatusCode(),
                 'data' => [
-                    'page' => $response->getPage(),
                     'assignedOrders' => $response->getOrders()
                 ]
             ]
@@ -77,38 +77,38 @@ $app->post('/orders/create', function (
     try {
         $postParams = $httpRequest->getParsedBody();
 
+        $guzzleClient = new Client();
+        $tokenManager = new TokenManager();
+
         $order = new Order();
         $order->setDeviceManufacturer($postParams['DeviceManufacturer']);
         $order->setDeviceBrand($postParams['DeviceBrand']);
         $order->setDeviceType($postParams['DeviceType']);
 
-        $orderService = new OrderService(new Client(), new TokenManager());
+        $orderService = new OrderService($guzzleClient, $tokenManager);
         $createOrderResponse = $orderService->createOrder($order);
         $createdOrder = $createOrderResponse->getOrder();
 
-        if ($createOrderResponse->getStatusCode() !== 200 && $createdOrder->getId() === 0) {
+        if ($createOrderResponse->getStatusCode() !== 200 || $createdOrder->getId() === 0) {
             $httpResponse->getBody()->write(json_encode(
                 [
                     'status' => $createOrderResponse->getStatusCode(),
-                    'data' => [
-                        'message' => $createOrderResponse->getMessage(),
-                    ]
+                    'message' => $createOrderResponse->getMessage(),
                 ]
             ));
             return $httpResponse->withStatus($createOrderResponse->getStatusCode())->withHeader('Content-type', 'application/json');;
         }
 
         $note = new Note($createdOrder->getId(), $postParams['NoteType'], $postParams['NoteDescription']);
-        $createdNoteResponse = $orderService->createNote($note);
+        $noteService = new NoteService($guzzleClient, $tokenManager);
+        $createdNoteResponse = $noteService->createNote($note);
         $createdNote = $createdNoteResponse->getNote();
 
-        if ($createdNoteResponse->getStatusCode() !== 200 && $createdNote->getId() === 0) {
+        if ($createdNoteResponse->getStatusCode() !== 200 || $createdNote->getId() === 0) {
             $httpResponse->getBody()->write(json_encode(
                 [
                     'status' => $createdNoteResponse->getStatusCode(),
-                    'data' => [
-                        'message' => $createdNoteResponse->getMessage(),
-                    ]
+                    'message' => $createdNoteResponse->getMessage(),
                 ]
             ));
             return $httpResponse->withStatus($createdNoteResponse->getStatusCode())->withHeader('Content-type', 'application/json');;
@@ -119,10 +119,10 @@ $app->post('/orders/create', function (
         $httpResponse->getBody()->write(json_encode(
             [
                 'status' => $createdNoteResponse->getStatusCode(),
+                'message' => $createOrderResponse->getMessage(),
                 'data' => [
-                    'message' => $createOrderResponse->getMessage(),
                     'orderId' => $createdOrder->getId(),
-                    'noteId' => $createdOrder->getNote()->getId()
+                    'noteId' => $createdNote->getId()
                 ]
             ]
         ));
@@ -139,8 +139,18 @@ $app->post('/reports', function (
     ResponseInterface $httpResponse
 ): ResponseInterface {
     try {
-        $orderService = new OrderService(new Client(), new TokenManager());
-        $response = $orderService->generateWeeklyReport(new DateTime('2020-11-01'), new DateTime('2020-11-30'));
+        $reportService = new ReportService(new Client(), new TokenManager());
+        $response = $reportService->generateGrowthRreport(new DateTime('2020-11-01'), new DateTime('2020-11-30'));
+
+        $httpResponse->getBody()->write(json_encode(
+            [
+                'status' => $response->getStatusCode(),
+                'message' => $response->getMessage(),
+                'data' => [
+                    'report' => $response->getReport()
+                ]
+            ]
+        ));
 
     } catch (Exception $exception) {
         var_dump($exception->getMessage());

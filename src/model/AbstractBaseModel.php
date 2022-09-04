@@ -17,20 +17,14 @@ abstract class AbstractBaseModel
     private array $errors;
 
     /**
-     * @return array
+     * @return bool
      */
-    public function getErrors(): array
-    {
-        return $this->errors;
-    }
+    public abstract function isValid(): bool;
 
     /**
-     * @param array $errors
+     * @return array
      */
-    public function setErrors(array $errors): void
-    {
-        $this->errors = $errors;
-    }
+    public abstract function toArray(): array;
 
     /**
      * @return int
@@ -46,5 +40,21 @@ abstract class AbstractBaseModel
     public function setId(int $id): void
     {
         $this->id = $id;
+    }
+
+    /**
+     * @return array
+     */
+    public function getErrors(): array
+    {
+        return $this->errors;
+    }
+
+    /**
+     * @param array $errors
+     */
+    public function setErrors(array $errors): void
+    {
+        $this->errors = $errors;
     }
 }
