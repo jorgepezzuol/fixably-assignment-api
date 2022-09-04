@@ -17,7 +17,17 @@ require __DIR__ . '/../../vendor/autoload.php';
 class OrderServiceTest extends TestCase
 {
 
-    public function testGetAssignedOrdersByDevice()
+    /**
+     * @test
+     * @dataProvider provideOrders
+     *
+     * @param int   $page
+     * @param int   $total
+     * @param array $results
+     *
+     * @return void
+     */
+    public function testGetAssignedOrdersByDevice(int $page, int $total, array $results): void
     {
         $expectedResponse = [
             "page" => $page,
@@ -31,8 +41,7 @@ class OrderServiceTest extends TestCase
         $response = $orderService->getAssignedOrdersByDevice('iPhone');
 
         static::assertEquals($expectedStatusCode, $response->getStatusCode());
-        static::assertEquals($this->expectedGetOrderByStatus()->getOrders(), $response->getOrders());
-
+        static::assertEquals($this->expectedGetAssignedOrdersByDevice()->getOrders(), $response->getOrders());
     }
 
     public function testCreateOrder()
@@ -80,7 +89,7 @@ class OrderServiceTest extends TestCase
                     "id" => 9243,
                     "deviceType" => "Laptop",
                     "deviceManufacturer" => "Apple",
-                    "deviceBrand" => "MacBook Pro",
+                    "deviceBrand" => "iPhone X",
                     "technician" => "Pasi",
                     "status" => 3,
                     "created" => "2020-10-01 10:05:57"
@@ -89,7 +98,7 @@ class OrderServiceTest extends TestCase
                     "id" => 9244,
                     "deviceType" => "Laptop",
                     "deviceManufacturer" => "Apple",
-                    "deviceBrand" => "MacBook Pro",
+                    "deviceBrand" => "iPhone 8",
                     "technician" => null,
                     "status" => 4,
                     "created" => "2020-10-01 10:10:42"
@@ -112,7 +121,7 @@ class OrderServiceTest extends TestCase
                         "id" => 9243,
                         "deviceType" => "Laptop",
                         "deviceManufacturer" => "Apple",
-                        "deviceBrand" => "MacBook Pro",
+                        "deviceBrand" => "iPhone X",
                         "technician" => "Pasi",
                         "status" => 'Assigned',
                         "created" => "2020-10-01 10:05:57"
@@ -127,7 +136,7 @@ class OrderServiceTest extends TestCase
                         "id" => 9244,
                         "deviceType" => "Laptop",
                         "deviceManufacturer" => "Apple",
-                        "deviceBrand" => "MacBook Pro",
+                        "deviceBrand" => "iPhone 8",
                         "technician" => null,
                         "status" => 'Unpaid',
                         "created" => "2020-10-01 10:10:42"
@@ -135,6 +144,25 @@ class OrderServiceTest extends TestCase
                 ]
             ]
         ]);
+    }
+
+    /**
+     * @return OrdersListDto
+     */
+    public function expectedGetAssignedOrdersByDevice(): OrdersListDto
+    {
+        return new OrdersListDto(200, [
+                0 => [
+                    "id" => 9243,
+                    "deviceType" => "Laptop",
+                    "deviceManufacturer" => "Apple",
+                    "deviceBrand" => "iPhone X",
+                    "technician" => "Pasi",
+                    "status" => 'Assigned',
+                    "created" => "2020-10-01 10:05:57"
+                ]
+            ]
+        );
     }
 
     /**
