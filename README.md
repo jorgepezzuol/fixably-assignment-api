@@ -1,12 +1,12 @@
 # Introduction
 
-The assignment was made using `PHP` with `Slim` framework, `GuzzleHttp`, `phpdotenv` and `PHPUnit` 
+The assignment was made using `PHP` with `Slim` framework, `GuzzleHttp`, `phpdotenv` and `PHPUnit`.
 
-Please execute `composer install` and `composer run start` after cloning the project
+## Setup
 
-To generate the dumps containing json data, execute `composer run dumps`
-
-Dumps will be created in `/dumps` folder which will come with dumps already.
+- rename `.env.local` to `.env` and paste a valid assignment code
+- execute `composer install`
+- execute `composer run start`
 
 ## Install
 
@@ -21,6 +21,8 @@ Dumps will be created in `/dumps` folder which will come with dumps already.
     composer run tests
 
 ## Generate dumps
+
+Dumps will be created in `/dumps` folder which will come with dumps already.
 
     composer run dumps
 
