@@ -2,6 +2,8 @@
 
 The assignment was made using `PHP` with `Slim` framework, `GuzzleHttp`, `phpdotenv` and `PHPUnit`.
 
+To show the final results based on the 5 tasks, it will produce `.json` dumps inside `/dumps` folder. 
+
 ## Setup
 
 - rename `.env.local` to `.env` and paste a valid assignment code
@@ -29,5 +31,5 @@ Dumps will be created in `/dumps` folder which will come with dumps already.
 # Things to Improve
 
 - Logging
-- More test cases testing when values are empty or invalid
+- More test cases when values are empty or invalid
 - Possibly use generators to improve performance when fetching orders for example

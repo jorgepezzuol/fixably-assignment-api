@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Controller\CreateOrderAction;
+use App\Controller\CreateOrderWithIssueAction;
 use App\Controller\GenerateReportAction;
 use App\Controller\GetAssignedOrdersByDeviceAction;
 use App\Controller\GetOrdersByStatusAction;
@@ -19,7 +19,7 @@ $app = AppFactory::create();
 
 $app->get('/orders', GetOrdersByStatusAction::class);
 $app->get('/orders/assigned', GetAssignedOrdersByDeviceAction::class);
-$app->get('/orders/create', CreateOrderAction::class);
+$app->get('/orders/create/issue', CreateOrderWithIssueAction::class);
 $app->get('/reports', GenerateReportAction::class);
 
 $app->run();

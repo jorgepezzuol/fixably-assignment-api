@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Auth\TokenManager;
+use App\Enum\DeviceTypeEnum;
+use App\Enum\NoteTypeEnum;
 use App\Enum\StatusEnum;
 use App\Model\Note;
 use App\Model\Order;
@@ -15,7 +17,7 @@ use GuzzleHttp\Client;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
-class CreateOrderAction extends AbstractBaseAction
+class CreateOrderWithIssueAction extends AbstractBaseAction
 {
     public function __invoke(ServerRequestInterface $httpRequest, ResponseInterface $httpResponse): ResponseInterface
     {
@@ -27,8 +29,8 @@ class CreateOrderAction extends AbstractBaseAction
 
             $order = new Order();
             $order->setDeviceManufacturer('Apple');
-            $order->setDeviceBrand('iPhone X');
-            $order->setDeviceType('Phone');
+            $order->setDeviceBrand('MacBook Pro');
+            $order->setDeviceType(DeviceTypeEnum::LAPTOP);
             $order->setStatus(StatusEnum::STATUSES_ID[$openStatus]);
             $order->setCreated(new DateTime());
 
@@ -40,7 +42,7 @@ class CreateOrderAction extends AbstractBaseAction
                 return $this->writeJsonResponse($httpResponse, $this->getErrorResponse());
             }
 
-            $note = new Note($createdOrder->getId(), 'Issue', 'test');
+            $note = new Note($createdOrder->getId(), NoteTypeEnum::ISSUE, 'broken screen');
             $noteService = new NoteService($guzzleClient, $tokenManager);
             $createdNoteResponse = $noteService->createNote($note);
             $createdNote = $createdNoteResponse->getNote();
