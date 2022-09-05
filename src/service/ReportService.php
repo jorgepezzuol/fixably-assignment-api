@@ -17,7 +17,7 @@ class ReportService extends AbstractBaseService
      * @return ReportDto
      * @throws Exception
      */
-    public function generateGrowthRreport(DateTime $fromDate, DateTime $toDate): ReportDto
+    public function generateGrowthReport(DateTime $fromDate, DateTime $toDate): ReportDto
     {
         $endpoint = sprintf('%s/report/%s/%s', self::FIXABLY_API_URL,
             $fromDate->format('Y-m-d'),

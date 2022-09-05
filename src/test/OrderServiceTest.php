@@ -4,19 +4,18 @@ declare(strict_types=1);
 
 namespace App\Test;
 
-use App\Auth\TokenManager;
 use App\Dto\OrdersListDto;
+use App\Model\Order;
 use App\Service\OrderService;
-use GuzzleHttp\Client;
-use GuzzleHttp\Message\Response;
-use GuzzleHttp\Stream\Stream;
+use App\Test\Mock\GuzzleClientMock;
+use App\Test\Mock\TokenManagerMock;
+use DateTime;
 use PHPUnit\Framework\TestCase;
 
 require __DIR__ . '/../../vendor/autoload.php';
 
 class OrderServiceTest extends TestCase
 {
-
     /**
      * @test
      * @dataProvider provideOrders
@@ -37,16 +36,43 @@ class OrderServiceTest extends TestCase
 
         $expectedStatusCode = 200;
 
-        $orderService = $this->getMockedOrderService($expectedStatusCode, $expectedResponse);
+        $orderService = $this->getOrderServiceMock($expectedStatusCode, $expectedResponse);
         $response = $orderService->getAssignedOrdersByDevice('iPhone');
 
         static::assertEquals($expectedStatusCode, $response->getStatusCode());
         static::assertEquals($this->expectedGetAssignedOrdersByDevice()->getOrders(), $response->getOrders());
     }
 
-    public function testCreateOrder()
+    /**
+     * @test
+     * @return void
+     */
+    public function testCreateOrder(): void
     {
+        $expectedOrderId = 17489;
 
+        $expectedResponse = [
+            "message" => 'Order created',
+            "id" => $expectedOrderId,
+        ];
+
+        $order = new Order();
+        $order->setDeviceManufacturer('Apple');
+        $order->setDeviceBrand('iPhone X');
+        $order->setDeviceType('Phone');
+        $order->setStatus(1);
+        $order->setCreated(new DateTime());
+
+        $expectedStatusCode = 200;
+
+        $orderService = $this->getOrderServiceMock($expectedStatusCode, $expectedResponse);
+        $response = $orderService->createOrder($order);
+
+        $expectedMessage = sprintf('Order %s created', $order->getId());
+
+        static::assertEquals($expectedOrderId, $response->getOrder()->getId());
+        static::assertEquals($expectedMessage, $response->getMessage());
+        static::assertEquals($expectedStatusCode,$response->getStatusCode());
     }
 
     /**
@@ -69,11 +95,25 @@ class OrderServiceTest extends TestCase
 
         $expectedStatusCode = 200;
 
-        $orderService = $this->getMockedOrderService($expectedStatusCode, $expectedResponse);
+        $orderService = $this->getOrderServiceMock($expectedStatusCode, $expectedResponse);
         $response = $orderService->getOrdersByStatus();
 
         static::assertEquals($expectedStatusCode, $response->getStatusCode());
         static::assertEquals($this->expectedGetOrderByStatus()->getOrders(), $response->getOrders());
+    }
+
+    /**
+     * @param int   $expectedStatusCode
+     * @param array $expectedResponse
+     *
+     * @return OrderService
+     */
+    public function getOrderServiceMock(int $expectedStatusCode, array $expectedResponse): OrderService
+    {
+        $mockedGuzzleClient = GuzzleClientMock::getGuzzleClient($expectedStatusCode, $expectedResponse);
+        $mockedTokenManager = TokenManagerMock::getTokenManager();
+
+        return new OrderService($mockedGuzzleClient, $mockedTokenManager);
     }
 
     /**
@@ -163,108 +203,5 @@ class OrderServiceTest extends TestCase
                 ]
             ]
         );
-    }
-
-    /**
-     * @param int   $expectedStatusCode
-     * @param array $expectedResponse
-     *
-     * @return OrderService
-     */
-    public function getMockedOrderService(int $expectedStatusCode, array $expectedResponse): OrderService
-    {
-        $mockedGuzzleClient = $this->getMockedGuzzleClient($expectedStatusCode, $expectedResponse);
-        $mockedTokenManager = $this->getMockedTokenManager();
-
-        return new OrderService($mockedGuzzleClient, $mockedTokenManager);
-    }
-
-    /**
-     * @return TokenManager
-     */
-    public function getMockedTokenManager(): TokenManager
-    {
-        return new class () extends TokenManager {
-            private const EXPECTED_TOKEN = 'd16f6506f45cd0f1d8173bfd';
-
-            /**
-             * @return string
-             */
-            public function fetchToken(): string
-            {
-                return self::EXPECTED_TOKEN;
-            }
-        };
-    }
-
-    /**
-     * @param int   $expectedStatusCode
-     * @param array $expectedResponse
-     *
-     * @return Client
-     */
-    public function getMockedGuzzleClient(int $expectedStatusCode, array $expectedResponse): Client
-    {
-        return new class ($expectedStatusCode, $expectedResponse) extends Client {
-
-            /**
-             * @var int
-             */
-            private int $statusCode;
-
-            /**
-             * @var int
-             */
-            private int $fakePagination = 0;
-
-            /**
-             * @var array
-             */
-            private array $response;
-
-            public function __construct(int $statusCode, array $response)
-            {
-                $this->statusCode = $statusCode;
-                $this->response = $response;
-            }
-
-            /**
-             * @param       $url
-             * @param array $options
-             *
-             * @return Response
-             */
-            public function post($url = null, array $options = []): Response
-            {
-                $body = null;
-
-                if ($this->fakePagination === 0) {
-                    $json = json_encode($this->response);
-                    $body = Stream::factory($json);
-                    $this->fakePagination += 1;
-                }
-
-                return new Response($this->statusCode, ['Content-Type' => 'application/json'], $body);
-            }
-
-            /**
-             * @param       $url
-             * @param array $options
-             *
-             * @return Response
-             */
-            public function get($url = null, $options = []): Response
-            {
-                $body = null;
-
-                if ($this->fakePagination === 0) {
-                    $json = json_encode($this->response);
-                    $body = Stream::factory($json);
-                    $this->fakePagination += 1;
-                }
-
-                return new Response($this->statusCode, ['Content-Type' => 'application/json'], $body);
-            }
-        };
     }
 }

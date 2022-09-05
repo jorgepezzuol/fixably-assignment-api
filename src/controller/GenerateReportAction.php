@@ -17,7 +17,7 @@ class GenerateReportAction
     public function __invoke(ServerRequestInterface $httpRequest, ResponseInterface $httpResponse): ResponseInterface {
         try {
             $reportService = new ReportService(new Client(), new TokenManager());
-            $response = $reportService->generateGrowthRreport(new DateTime('2020-11-01'), new DateTime('2020-11-30'));
+            $response = $reportService->generateGrowthReport(new DateTime('2020-11-01'), new DateTime('2020-11-30'));
 
             $httpResponse->getBody()->write(json_encode(
                 [

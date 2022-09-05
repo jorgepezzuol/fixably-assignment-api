@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Auth\TokenManager;
+use App\Enum\StatusEnum;
 use App\Model\Note;
 use App\Model\Order;
 use App\Service\NoteService;
@@ -23,6 +24,8 @@ class CreateOrderAction
             $guzzleClient = new Client();
             $tokenManager = new TokenManager();
 
+            $openStatus = StatusEnum::OPEN;
+
             $order = new Order();
 //            $order->setDeviceManufacturer($postParams['DeviceManufacturer']);
 //            $order->setDeviceBrand($postParams['DeviceBrand']);
@@ -30,6 +33,8 @@ class CreateOrderAction
             $order->setDeviceManufacturer('Apple');
             $order->setDeviceBrand('iPhone X');
             $order->setDeviceType('Phone');
+            $order->setStatus(StatusEnum::STATUSES_ID[$openStatus]);
+            $order->setCreated(new DateTime());
 
             $orderService = new OrderService($guzzleClient, $tokenManager);
             $createOrderResponse = $orderService->createOrder($order);
