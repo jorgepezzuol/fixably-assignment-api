@@ -8,7 +8,6 @@ use App\Dto\OrderDto;
 use App\Dto\OrderNoteDto;
 use App\Dto\OrdersListDto;
 use App\Enum\StatusEnum;
-use App\Helper\OrderHelper;
 use App\Model\Order;
 use DateTime;
 use Exception;
