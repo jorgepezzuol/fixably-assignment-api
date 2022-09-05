@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Mock\Test;
+namespace App\Test;
 
 use App\Model\Note;
 use App\Service\NoteService;
+use App\Test\Mock\GuzzleClientMock;
+use App\Test\Mock\TokenManagerMock;
 use PHPUnit\Framework\TestCase;
 
 require __DIR__ . '/../../vendor/autoload.php';

@@ -15,15 +15,14 @@ require __DIR__ . '/../../vendor/autoload.php';
 
 class ReportServiceTest extends TestCase
 {
-
     /**
      * @test
      * @return void
      * @throws Exception
      */
-    public function testGenerateGrowthRreport(): void
+    public function testGenerateGrowthReport(): void
     {
-        $mockedResponse = file_get_contents("./mock/report.json");
+        $mockedResponse = file_get_contents(__DIR__ . "/mock/report.json");
 
         $expectedStatusCode = 200;
         $expectedResponse = json_decode($mockedResponse, true);
@@ -32,7 +31,7 @@ class ReportServiceTest extends TestCase
         $response = $reportService->generateGrowthReport(new DateTime('2020-11-01'), new DateTime('2020-11-30'));
 
         static::assertEquals($expectedStatusCode, $response->getStatusCode());
-        static::assertEquals($this->getExpectedGrowtReport(), $response->getReport());
+        static::assertEquals($this->getExpectedGrowthReport(), $response->getReport());
     }
 
     /**
@@ -52,7 +51,7 @@ class ReportServiceTest extends TestCase
     /**
      * @return array
      */
-    public function getExpectedGrowtReport(): array
+    public function getExpectedGrowthReport(): array
     {
         return json_decode(
             '{
