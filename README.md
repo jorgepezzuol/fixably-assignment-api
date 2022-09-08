@@ -8,7 +8,7 @@ Related repo: https://github.com/jorgepezzuol/fixably-assignment-react
 
 ## Setup
 
-- rename `.env.local` to `.env` and paste a valid assignment code
+- rename `.env.local` to `.env` and paste a valid assignment code, example: `FIXABLY_API_CODE=11111111`
 - execute `composer install`
 - execute `composer run start`
 
@@ -46,4 +46,4 @@ You can also see the results via browser.
 
 - Logging
 - More test cases when values are empty or invalid
-- Possibly use generators to improve performance when fetching orders for example
+- Possibly use generators or multi curl to improve performance when fetching orders for example
