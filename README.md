@@ -34,13 +34,13 @@ Dumps will be created in `/dumps` folder which will come with dumps already.
 
 You can also see the results via browser.
 
-- Task 2: [List statistics of orders by status](http://localhost:8888/orders)
+- List statistics of orders by status: [http://localhost:8888/orders](http://localhost:8888/orders)
 
-- Task 3: [Lists all orders with an iPhone device and assigned](http://localhost:8888/orders/assigned)
+- Lists all orders with an iPhone device and assigned: [http://localhost:8888/orders/assigned](http://localhost:8888/orders/assigned)
 
-- Task 4: [Invoices report](http://localhost:8888/orders/create/issue)
+- Invoices report: [http://localhost:8888/reports](http://localhost:8888/reports)
 
-- Task 5: [Create order with an issue](http://localhost:8888/reports)
+- Create order with an issue: [http://localhost:8888/orders/create](http://localhost:8888/orders/create)
 
 # Things to Improve
 
